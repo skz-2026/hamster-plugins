@@ -1,10 +1,13 @@
 name: Publish plugins
 
-# plugins/** 变更 → 校验 manifest → 打 zip → 发 <id>@<version> Release → 重算 sha256 更新 registry.json
+# plugins/** 变更 → 全量打包 plugins/ 下所有插件 → 发/更 <id>@<version> Release
+# → 重算 sha256 重建 registry.json。全量幂等（同版本覆盖上传），插件少、打包快，
+# 比变更检测可靠（pwsh 对原生命令 stderr+EAP=Stop 的行为有坑）。
 on:
   push:
     branches: [main]
-    paths: ['plugins/**']
+    paths: ['plugins/**', '.github/workflows/publish.yml']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,26 +17,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Pack & publish changed plugins
+      - name: Pack & publish all plugins
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          # 找出本次变更的插件目录；首推（无上一提交）时全量打包
-          $base = git rev-parse HEAD~1 2>$null
-          if (-not $base) {
-            $changed = (Get-ChildItem plugins -Directory).Name
-          } else {
-            $changed = git diff --name-only "$base" HEAD -- plugins/ |
-              ForEach-Object { ($_ -split '/')[1] } | Sort-Object -Unique
-          }
-          Write-Host "changed: $($changed -join ', ')"
           $entries = @()
-          foreach ($id in $changed) {
+          $dirs = Get-ChildItem plugins -Directory
+          Write-Host "plugins: $($dirs.Name -join ', ')"
+          foreach ($d in $dirs) {
+            $id = $d.Name
             $dir = "plugins/$id"
             if (-not (Test-Path "$dir/plugin.json")) { Write-Host "skip $id (no plugin.json)"; continue }
             $m = Get-Content "$dir/plugin.json" -Raw | ConvertFrom-Json
@@ -65,16 +60,13 @@ jobs:
             }
             Remove-Item $zip
           }
-          # 重建 registry.json：未变更插件保留原条目
-          $old = @()
-          if (Test-Path registry.json) {
-            $old = (Get-Content registry.json -Raw | ConvertFrom-Json).plugins
+          if ($entries.Count -eq 0) { throw "没有可发布的插件（plugins/ 为空或全部无 plugin.json）" }
+          # 全量重建 registry.json
+          $reg = [ordered]@{
+            version = 1
+            updated = (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ")
+            plugins = @($entries | Sort-Object { $_.id })
           }
-          $byId = @{}
-          foreach ($e in $old) { $byId[$e.id] = $e }
-          foreach ($e in $entries) { $byId[$e.id] = $e }
-          $list = @($byId.Values | Sort-Object id)
-          $reg = [ordered]@{ version = 1; updated = (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ"); plugins = $list }
           $reg | ConvertTo-Json -Depth 6 | Set-Content registry.json -Encoding utf8
           git config user.name "plugin-bot"
           git config user.email "bot@users.noreply.github.com"
