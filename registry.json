@@ -1,5 +1,64 @@
 {
   "version": 1,
-  "updated": "2026-09-18T13:39:19Z",
-  "plugins": []
+  "updated": "2026-09-18T13:44:51Z",
+  "plugins": [
+    {
+      "id": "ai-notes",
+      "name": "AI 笔记",
+      "version": "1.0.0",
+      "description": "以标签为核心的整页笔记应用：标签补全 / 一键建议 / 过滤 / 重命名；本地启发式打标零配置可用，配置 OpenAI 兼容接口（GLM 等）后启用 AI 打标与摘要。",
+      "author": "仓鼠Hub",
+      "icon": "📝",
+      "entry": null,
+      "page": "page.js",
+      "permissions": [],
+      "zipUrl": "releases/download/ai-notes@1.0.0/ai-notes-1.0.0.zip",
+      "sha256": "7cfd57267d21677e35e8febdde8d5c3c5a2ec5131a863033ae496ca9afe6bb8b",
+      "size": 9536
+    },
+    {
+      "id": "focus-timer",
+      "name": "专注计时器",
+      "version": "1.0.0",
+      "description": "整页番茄钟：25 分钟专注 + 5 分钟休息，完成数存在插件私有存储里。演示整页插件（page 入口）。",
+      "author": "仓鼠Hub",
+      "icon": "🍅",
+      "entry": null,
+      "page": "page.js",
+      "permissions": [],
+      "zipUrl": "releases/download/focus-timer@1.0.0/focus-timer-1.0.0.zip",
+      "sha256": "918819b19615f4e427f68e38e768fa61702899f785ab5397fa2b17074f962581",
+      "size": 2596
+    },
+    {
+      "id": "hello-hamster",
+      "name": "你好仓鼠",
+      "version": "1.0.0",
+      "description": "最小示例：点击计数 + 插件私有存储。照着这个写你自己的小组件。",
+      "author": "仓鼠Hub",
+      "icon": null,
+      "entry": "widget.js",
+      "page": null,
+      "permissions": [
+        "todo.add"
+      ],
+      "zipUrl": "releases/download/hello-hamster@1.0.0/hello-hamster-1.0.0.zip",
+      "sha256": "2453fe3a7ed07cec676b92ac07ea3f684ec4baa5a07739c140724fbd40edbf4e",
+      "size": 2006
+    },
+    {
+      "id": "hitokoto",
+      "name": "一言",
+      "version": "1.0.0",
+      "description": "随机刷一句一言（hitokoto.cn 公开 API）。演示插件里用 fetch 拉网络数据。",
+      "author": "仓鼠Hub",
+      "icon": null,
+      "entry": "widget.js",
+      "page": null,
+      "permissions": [],
+      "zipUrl": "releases/download/hitokoto@1.0.0/hitokoto-1.0.0.zip",
+      "sha256": "6f289566c347a0c55cd3810df615a2b15e519b344b2e7107e884a133ccea6b38",
+      "size": 1377
+    }
+  ]
 }
