@@ -1,0 +1,9 @@
+{
+  "id": "ai-notes",
+  "name": "AI 笔记",
+  "version": "1.0.0",
+  "description": "以标签为核心的整页笔记应用：标签补全 / 一键建议 / 过滤 / 重命名；本地启发式打标零配置可用，配置 OpenAI 兼容接口（GLM 等）后启用 AI 打标与摘要。",
+  "author": "仓鼠Hub",
+  "page": "page.js",
+  "icon": "📝"
+}

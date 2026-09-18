@@ -1,0 +1,9 @@
+{
+  "id": "focus-timer",
+  "name": "专注计时器",
+  "version": "1.0.0",
+  "description": "整页番茄钟：25 分钟专注 + 5 分钟休息，完成数存在插件私有存储里。演示整页插件（page 入口）。",
+  "author": "仓鼠Hub",
+  "page": "page.js",
+  "icon": "🍅"
+}

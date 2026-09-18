@@ -1,0 +1,9 @@
+{
+  "id": "hello-hamster",
+  "name": "你好仓鼠",
+  "version": "1.0.0",
+  "description": "最小示例：点击计数 + 插件私有存储。照着这个写你自己的小组件。",
+  "author": "仓鼠Hub",
+  "entry": "widget.js",
+  "permissions": ["todo.add"]
+}

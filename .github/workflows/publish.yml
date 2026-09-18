@@ -1,0 +1,83 @@
+name: Publish plugins
+
+# plugins/** 变更 → 校验 manifest → 打 zip → 发 <id>@<version> Release → 重算 sha256 更新 registry.json
+on:
+  push:
+    branches: [main]
+    paths: ['plugins/**']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pack & publish changed plugins
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # 找出本次变更的插件目录；首推（无上一提交）时全量打包
+          $base = git rev-parse HEAD~1 2>$null
+          if (-not $base) {
+            $changed = (Get-ChildItem plugins -Directory).Name
+          } else {
+            $changed = git diff --name-only "$base" HEAD -- plugins/ |
+              ForEach-Object { ($_ -split '/')[1] } | Sort-Object -Unique
+          }
+          Write-Host "changed: $($changed -join ', ')"
+          $entries = @()
+          foreach ($id in $changed) {
+            $dir = "plugins/$id"
+            if (-not (Test-Path "$dir/plugin.json")) { Write-Host "skip $id (no plugin.json)"; continue }
+            $m = Get-Content "$dir/plugin.json" -Raw | ConvertFrom-Json
+            $ver = $m.version
+            $zip = "$id-$ver.zip"
+            # 文件清单：plugin.json + 声明入口 + 其余非隐藏文件（zip 根部不带目录前缀）
+            Push-Location $dir
+            $files = @('plugin.json')
+            if ($m.entry) { $files += $m.entry }
+            if ($m.page) { $files += $m.page }
+            $files += (Get-ChildItem -File |
+              Where-Object { $files -notcontains $_.Name -and -not $_.Name.StartsWith('.') }).Name
+            tar -a -cf "../../$zip" @($files | Where-Object { $_ })
+            Pop-Location
+            $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+            $size = (Get-Item $zip).Length
+            # 发/复用 Release（同 tag 重推 = 更新资产）；已存在时 create 报错忽略，upload --clobber 覆盖
+            gh release create "$id@$ver" --title "$id@$ver" --notes "auto-packaged from plugins/$id" 2>$null
+            if ($LASTEXITCODE -ne 0) { Write-Host "release $id@$ver exists, uploading anyway" }
+            gh release upload "$id@$ver" $zip --clobber
+            $entries += [ordered]@{
+              id = $id; name = $m.name; version = $ver
+              description = "$(if ($m.description) { $m.description } else { '' })"
+              author = "$(if ($m.author) { $m.author } else { '' })"
+              icon = $m.icon; entry = $m.entry; page = $m.page
+              permissions = @(if ($m.permissions) { $m.permissions } else { @() })
+              zipUrl = "releases/download/$id@$ver/$zip"
+              sha256 = $sha; size = $size
+            }
+            Remove-Item $zip
+          }
+          # 重建 registry.json：未变更插件保留原条目
+          $old = @()
+          if (Test-Path registry.json) {
+            $old = (Get-Content registry.json -Raw | ConvertFrom-Json).plugins
+          }
+          $byId = @{}
+          foreach ($e in $old) { $byId[$e.id] = $e }
+          foreach ($e in $entries) { $byId[$e.id] = $e }
+          $list = @($byId.Values | Sort-Object id)
+          $reg = [ordered]@{ version = 1; updated = (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ"); plugins = $list }
+          $reg | ConvertTo-Json -Depth 6 | Set-Content registry.json -Encoding utf8
+          git config user.name "plugin-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add registry.json
+          git commit -m "chore: update registry.json [skip ci]" || Write-Host "registry unchanged"
+          git push

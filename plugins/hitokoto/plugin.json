@@ -1,0 +1,8 @@
+{
+  "id": "hitokoto",
+  "name": "一言",
+  "version": "1.0.0",
+  "description": "随机刷一句一言（hitokoto.cn 公开 API）。演示插件里用 fetch 拉网络数据。",
+  "author": "仓鼠Hub",
+  "entry": "widget.js"
+}
